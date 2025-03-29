@@ -1,0 +1,5 @@
+import pickle
+
+with open("data\CSL-Daily\gloss2ids.pkl", "rb") as f:
+    gloss2id = pickle.load(f)
+print("Number of glosses:", len(gloss2id))

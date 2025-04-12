@@ -53,7 +53,6 @@ class SignLanguageModel(torch.nn.Module):
             model_outputs = {**translation_outputs, **recognition_outputs}
             model_outputs['transformer_inputs'] = model_outputs['transformer_inputs']  # for latter use of decoding
             model_outputs['total_loss'] = model_outputs['recognition_loss'] + model_outputs['translation_loss']
-
         return model_outputs
 
 

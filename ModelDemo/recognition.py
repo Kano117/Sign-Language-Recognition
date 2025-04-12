@@ -262,12 +262,6 @@ class DSTA(nn.Module):
 
 
     def forward(self,src_input):
-        print("Keys in src_input:", src_input.keys())
-        if 'keypoint' in src_input:
-            print("Shape of keypoint tensor:", src_input['keypoint'].shape)
-        else:
-            print("Key 'keypoint' not found in src_input!")
-            raise KeyError("Key 'keypoint' is missing in src_input")
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         x = src_input['keypoint'].to(device)
         N, C, T, V = x.shape

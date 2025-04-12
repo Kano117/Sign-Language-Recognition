@@ -1,5 +1,54 @@
-import pickle
+import torch
+from model import SignLanguageModel
+from Tokenizer import GlossTokenizer_S2G
+from datasets import S2T_Dataset
+import yaml
+from pathlib import Path
+from phoenix_cleanup import clean_phoenix_2014, clean_phoenix_2014_trans
 
-with open("data\CSL-Daily\gloss2ids.pkl", "rb") as f:
-    gloss2id = pickle.load(f)
-print("Number of glosses:", len(gloss2id))
+# Load config
+config_path = 'configs\phoenix-2014t_s2g.yaml'
+checkpoint_path = 'D:\\Tailieu\\HK5\\DoAn\\Modelkhaosat\\MSKA-main\\pretrained_models\\best.pth'
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+with open(config_path, 'r', encoding='utf-8') as f:
+    config = yaml.load(f, Loader=yaml.FullLoader)
+
+# Load tokenizer
+tokenizer = GlossTokenizer_S2G(config['gloss'])
+
+# Load test dataset
+test_data = S2T_Dataset(
+    path=config['data']['test_label_path'],
+    tokenizer=tokenizer,
+    config=config,
+    args=None,  
+    phase='test',
+    training_refurbish=False
+)
+
+
+sample = test_data[0]  
+sample_input = test_data.collate_fn([sample]) 
+
+# Load model
+model = SignLanguageModel(cfg=config, args=None)
+checkpoint = torch.load(checkpoint_path, map_location='cpu')
+model.load_state_dict(checkpoint['model'], strict=True)
+model.to(device)
+model.eval()
+
+# Dự đoán gloss
+with torch.no_grad():
+    for key in sample_input:
+        if isinstance(sample_input[key], torch.Tensor):
+            sample_input[key] = sample_input[key].to(device)
+
+    output = model(sample_input)
+    gloss_logits = output['ensemble_last_gloss_logits']  # lấy logits
+    input_lengths = output['input_lengths']
+    decoded_ids = model.recognition_network.decode(gloss_logits, beam_size=5, input_lengths=input_lengths)
+    gloss_prediction = tokenizer.convert_ids_to_tokens(decoded_ids)[0]
+
+    print("===== RECOGNITION RESULT =====")
+    print("Predicted Glosses:", ' '.join(gloss_prediction))
